@@ -1,0 +1,37 @@
+name: Build Blender
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch Blender PR
+        shell: cmd
+        run: |
+          git fetch https://projects.blender.org/blender/blender.git pull/153077/head:pr153077
+          git checkout pr153077
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download dependencies
+        shell: cmd
+        run: build_files\utils\make_update.bat
+
+      - name: Build Blender
+        shell: cmd
+        run: build_files\windows\make.bat -j 2
+
+      - name: Upload Blender build
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-build
+          path: build_windows*
