@@ -1,4 +1,4 @@
-name: Build Blender PR 153077
+name: Build Blender PR
 
 on:
 workflow_dispatch:
@@ -8,38 +8,40 @@ build:
 runs-on: windows-latest
 
 ```
-env:
-  GIT_LFS_SKIP_SMUDGE: 1
-
 steps:
 
-  - name: Install Git LFS
-    run: git lfs install --skip-smudge
+  - name: Disable Git LFS globally
+    run: |
+      git config --global filter.lfs.required false
+      git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
+      git config --global filter.lfs.process "git-lfs filter-process --skip"
+      git config --global filter.lfs.clean "git-lfs clean --skip -- %f"
 
-  - name: Clone Blender repository
+  - name: Checkout repository (no LFS)
+    uses: actions/checkout@v4
+    with:
+      lfs: false
+      fetch-depth: 0
+
+  - name: Fetch Blender PR
     shell: cmd
     run: |
-      git clone --depth 1 https://projects.blender.org/blender/blender.git
-      cd blender
-      git remote add pr https://projects.blender.org/blender/blender.git
-      git fetch pr pull/153077/head:pr153077
+      git remote add blender https://projects.blender.org/blender/blender.git
+      git fetch blender pull/153077/head:pr153077
       git checkout pr153077
 
-  - name: Download Blender libraries
+  - name: Download Blender dependencies
     shell: cmd
     run: |
-      cd blender
-      build_files\utils\make_update.bat
+      build_files/utils/make_update.bat
 
   - name: Build Blender
     shell: cmd
     run: |
-      cd blender
-      build_files\windows\make.bat -j 2
+      build_files/windows/make.bat -j 2
 
   - name: Upload build
     uses: actions/upload-artifact@v4
     with:
       name: blender-build
-      path: blender/build_windows*
-```
+      path: build_windows*
