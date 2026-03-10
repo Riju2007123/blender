@@ -8,25 +8,21 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Install Git LFS
-        run: |
-          git lfs install
-
-      - name: Checkout repository
+      - name: Checkout Blender
         uses: actions/checkout@v4
         with:
-          lfs: true
+          lfs: false
 
-      - name: Fetch PR
+      - name: Fetch Blender PR
         shell: cmd
         run: |
           git fetch https://projects.blender.org/blender/blender.git pull/153077/head:pr153077
           git checkout pr153077
 
-      - name: Pull LFS files
-        run: git lfs pull
+      - name: Install Git LFS
+        run: git lfs install
 
-      - name: Download dependencies
+      - name: Download Blender dependencies
         shell: cmd
         run: build_files\utils\make_update.bat
 
@@ -34,7 +30,7 @@ jobs:
         shell: cmd
         run: build_files\windows\make.bat -j 2
 
-      - name: Upload Blender build
+      - name: Upload build
         uses: actions/upload-artifact@v4
         with:
           name: blender-build
