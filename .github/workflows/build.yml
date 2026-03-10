@@ -1,59 +1,50 @@
-name: Build Blender (PR 153077 - DLSS Viewport Denoising)
+name: Build Blender
 
 on:
-workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
-build:
-runs-on: windows-latest
+  build:
+    runs-on: windows-latest
 
-```
-env:
-  GIT_LFS_SKIP_SMUDGE: 1
+    env:
+      GIT_LFS_SKIP_SMUDGE: 1
 
-steps:
-  - name: Disable Git LFS completely
-    shell: cmd
-    run: |
-      git config --global filter.lfs.required false
-      git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
-      git config --global filter.lfs.process "git-lfs filter-process --skip"
-      git config --global filter.lfs.clean "git-lfs clean --skip -- %f"
+    steps:
+      - name: Disable Git LFS filters
+        shell: cmd
+        run: |
+          git config --global filter.lfs.required false
+          git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
+          git config --global filter.lfs.process "git-lfs filter-process --skip"
+          git config --global filter.lfs.clean "git-lfs clean --skip -- %f"
 
-  - name: Checkout repository (no LFS)
-    uses: actions/checkout@v4
-    with:
-      lfs: false
-      fetch-depth: 0
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+          fetch-depth: 0
 
-  - name: Add Blender upstream
-    shell: cmd
-    run: |
-      git remote add blender https://projects.blender.org/blender/blender.git
+      - name: Fetch Blender PR
+        shell: cmd
+        run: |
+          git remote add blender https://projects.blender.org/blender/blender.git
+          git fetch blender pull/153077/head:pr153077
+          git checkout pr153077
 
-  - name: Fetch PR 153077
-    shell: cmd
-    run: |
-      git fetch blender pull/153077/head:pr153077
-      git checkout pr153077
-      git log -1 --oneline
+      - name: Download Blender dependencies
+        shell: cmd
+        run: |
+          set GIT_LFS_SKIP_SMUDGE=1
+          build_files/utils/make_update.bat
 
-  - name: Download Blender dependencies
-    shell: cmd
-    run: |
-      set GIT_LFS_SKIP_SMUDGE=1
-      build_files\utils\make_update.bat
+      - name: Build Blender
+        shell: cmd
+        run: |
+          build_files/windows/make.bat -j 2
 
-  - name: Build Blender
-    shell: cmd
-    run: |
-      build_files\windows\make.bat -j 2
-
-  - name: Upload Blender build artifacts
-    if: always()
-    uses: actions/upload-artifact@v4
-    with:
-      name: blender-build
-      path: build_windows*
-      retention-days: 7
-```
+      - name: Upload Blender build
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-build
+          path: build_windows*
