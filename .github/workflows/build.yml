@@ -8,10 +8,14 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout Blender
+      - name: Disable Git LFS smudge
+        run: git config --global lfs.smudge "git-lfs smudge --skip -- %f"
+
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           lfs: false
+          fetch-depth: 0
 
       - name: Fetch Blender PR
         shell: cmd
