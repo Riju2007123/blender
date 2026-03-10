@@ -1,51 +1,59 @@
 name: Build Blender (PR 153077 - DLSS Viewport Denoising)
 
 on:
-  workflow_dispatch:
+workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: windows-latest
+build:
+runs-on: windows-latest
 
-    env:
-      GIT_LFS_SKIP_SMUDGE: 1
+```
+env:
+  GIT_LFS_SKIP_SMUDGE: 1
 
-    steps:
-      - name: Checkout repository (skip LFS)
-        uses: actions/checkout@v4
-        with:
-          lfs: false
-          fetch-depth: 0
+steps:
+  - name: Disable Git LFS completely
+    shell: cmd
+    run: |
+      git config --global filter.lfs.required false
+      git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
+      git config --global filter.lfs.process "git-lfs filter-process --skip"
+      git config --global filter.lfs.clean "git-lfs clean --skip -- %f"
 
-      - name: Disable LFS filters globally
-        run: |
-          git config --global filter.lfs.required false
-          git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
-          git config --global filter.lfs.process "git-lfs filter-process --skip"
-        shell: cmd
+  - name: Checkout repository (no LFS)
+    uses: actions/checkout@v4
+    with:
+      lfs: false
+      fetch-depth: 0
 
-      - name: Fetch Blender PR 153077
-        shell: cmd
-        run: |
-          git remote add blender https://projects.blender.org/blender/blender.git
-          git fetch blender pull/153077/head:pr153077
-          git checkout pr153077
-          git log -1 --oneline  # Just to confirm
+  - name: Add Blender upstream
+    shell: cmd
+    run: |
+      git remote add blender https://projects.blender.org/blender/blender.git
 
-      - name: Download Blender dependencies (with LFS skipped)
-        shell: cmd
-        run: |
-          echo Skipping LFS in make_update
-          build_files\utils\make_update.bat
+  - name: Fetch PR 153077
+    shell: cmd
+    run: |
+      git fetch blender pull/153077/head:pr153077
+      git checkout pr153077
+      git log -1 --oneline
 
-      - name: Build Blender
-        shell: cmd
-        run: build_files\windows\make.bat -j 2
+  - name: Download Blender dependencies
+    shell: cmd
+    run: |
+      set GIT_LFS_SKIP_SMUDGE=1
+      build_files\utils\make_update.bat
 
-      - name: Upload Blender build artifacts
-        if: always()  # Upload even on failure (for debugging)
-        uses: actions/upload-artifact@v4
-        with:
-          name: blender-build
-          path: build_windows*
-          retention-days: 7
+  - name: Build Blender
+    shell: cmd
+    run: |
+      build_files\windows\make.bat -j 2
+
+  - name: Upload Blender build artifacts
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: blender-build
+      path: build_windows*
+      retention-days: 7
+```
