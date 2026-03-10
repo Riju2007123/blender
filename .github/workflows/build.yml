@@ -1,47 +1,43 @@
 name: Build Blender PR
 
 on:
-workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
-build:
-runs-on: windows-latest
+  build:
+    runs-on: windows-latest
 
-```
-steps:
+    steps:
 
-  - name: Disable Git LFS globally
-    run: |
-      git config --global filter.lfs.required false
-      git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
-      git config --global filter.lfs.process "git-lfs filter-process --skip"
-      git config --global filter.lfs.clean "git-lfs clean --skip -- %f"
+      - name: Disable Git LFS completely
+        run: |
+          git config --global filter.lfs.required false
+          git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
+          git config --global filter.lfs.process "git-lfs filter-process --skip"
+          git config --global filter.lfs.clean "git-lfs clean --skip -- %f"
 
-  - name: Checkout repository (no LFS)
-    uses: actions/checkout@v4
-    with:
-      lfs: false
-      fetch-depth: 0
+      - name: Clone Blender manually
+        shell: cmd
+        run: |
+          git clone https://projects.blender.org/blender/blender.git
+          cd blender
+          git fetch origin pull/153077/head:pr153077
+          git checkout pr153077
 
-  - name: Fetch Blender PR
-    shell: cmd
-    run: |
-      git remote add blender https://projects.blender.org/blender/blender.git
-      git fetch blender pull/153077/head:pr153077
-      git checkout pr153077
+      - name: Download Blender dependencies
+        shell: cmd
+        run: |
+          cd blender
+          build_files\utils\make_update.bat
 
-  - name: Download Blender dependencies
-    shell: cmd
-    run: |
-      build_files/utils/make_update.bat
+      - name: Build Blender
+        shell: cmd
+        run: |
+          cd blender
+          build_files\windows\make.bat -j 2
 
-  - name: Build Blender
-    shell: cmd
-    run: |
-      build_files/windows/make.bat -j 2
-
-  - name: Upload build
-    uses: actions/upload-artifact@v4
-    with:
-      name: blender-build
-      path: build_windows*
+      - name: Upload Blender build
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-build
+          path: blender/build_windows*
