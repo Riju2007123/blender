@@ -1,4 +1,4 @@
-name: Build Blender
+name: Build Blender (PR 153077 - DLSS Viewport Denoising)
 
 on:
   workflow_dispatch:
@@ -11,31 +11,41 @@ jobs:
       GIT_LFS_SKIP_SMUDGE: 1
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (skip LFS)
         uses: actions/checkout@v4
         with:
           lfs: false
           fetch-depth: 0
 
-      - name: Fetch Blender PR
+      - name: Disable LFS filters globally
+        run: |
+          git config --global filter.lfs.required false
+          git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
+          git config --global filter.lfs.process "git-lfs filter-process --skip"
+        shell: cmd
+
+      - name: Fetch Blender PR 153077
         shell: cmd
         run: |
-          git fetch https://projects.blender.org/blender/blender.git pull/153077/head:pr153077
+          git remote add blender https://projects.blender.org/blender/blender.git
+          git fetch blender pull/153077/head:pr153077
           git checkout pr153077
+          git log -1 --oneline  # Just to confirm
 
-      - name: Install Git LFS
-        run: git lfs install
-
-      - name: Download Blender dependencies
+      - name: Download Blender dependencies (with LFS skipped)
         shell: cmd
-        run: build_files\utils\make_update.bat
+        run: |
+          echo Skipping LFS in make_update
+          build_files\utils\make_update.bat
 
       - name: Build Blender
         shell: cmd
         run: build_files\windows\make.bat -j 2
 
-      - name: Upload build
+      - name: Upload Blender build artifacts
+        if: always()  # Upload even on failure (for debugging)
         uses: actions/upload-artifact@v4
         with:
           name: blender-build
           path: build_windows*
+          retention-days: 7
