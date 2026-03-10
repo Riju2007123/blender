@@ -1,50 +1,45 @@
-name: Build Blender
+name: Build Blender PR 153077
 
 on:
-  workflow_dispatch:
+workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: windows-latest
+build:
+runs-on: windows-latest
 
-    env:
-      GIT_LFS_SKIP_SMUDGE: 1
+```
+env:
+  GIT_LFS_SKIP_SMUDGE: 1
 
-    steps:
-      - name: Disable Git LFS filters
-        shell: cmd
-        run: |
-          git config --global filter.lfs.required false
-          git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
-          git config --global filter.lfs.process "git-lfs filter-process --skip"
-          git config --global filter.lfs.clean "git-lfs clean --skip -- %f"
+steps:
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          lfs: false
-          fetch-depth: 0
+  - name: Install Git LFS
+    run: git lfs install --skip-smudge
 
-      - name: Fetch Blender PR
-        shell: cmd
-        run: |
-          git remote add blender https://projects.blender.org/blender/blender.git
-          git fetch blender pull/153077/head:pr153077
-          git checkout pr153077
+  - name: Clone Blender repository
+    shell: cmd
+    run: |
+      git clone --depth 1 https://projects.blender.org/blender/blender.git
+      cd blender
+      git remote add pr https://projects.blender.org/blender/blender.git
+      git fetch pr pull/153077/head:pr153077
+      git checkout pr153077
 
-      - name: Download Blender dependencies
-        shell: cmd
-        run: |
-          set GIT_LFS_SKIP_SMUDGE=1
-          build_files/utils/make_update.bat
+  - name: Download Blender libraries
+    shell: cmd
+    run: |
+      cd blender
+      build_files\utils\make_update.bat
 
-      - name: Build Blender
-        shell: cmd
-        run: |
-          build_files/windows/make.bat -j 2
+  - name: Build Blender
+    shell: cmd
+    run: |
+      cd blender
+      build_files\windows\make.bat -j 2
 
-      - name: Upload Blender build
-        uses: actions/upload-artifact@v4
-        with:
-          name: blender-build
-          path: build_windows*
+  - name: Upload build
+    uses: actions/upload-artifact@v4
+    with:
+      name: blender-build
+      path: blender/build_windows*
+```
