@@ -1,5 +1,15 @@
-- name: Send to Discord
-  run: |
-    curl -H "Content-Type: application/json" \
-    -d '{"content": "🚀 New Release: ${{ github.event.release.name }} - Version: ${{ github.event.release.tag_name }}\n${{ github.event.release.html_url }}"}' \
-    ${{ secrets.DISCORD_WEBHOOK }}
+name: Discord Notify
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send to Discord
+        run: |
+          curl -H "Content-Type: application/json" \
+          -d '{"content": "🚀 New Release: ${{ github.event.release.name }}\nVersion: ${{ github.event.release.tag_name }}\n${{ github.event.release.html_url }}"}' \
+          "${{ secrets.DISCORD_WEBHOOK }}"
