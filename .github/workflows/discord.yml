@@ -12,9 +12,9 @@ jobs:
         run: |
           BODY="${{ github.event.release.body }}"
 
-          # escape newlines and quotes safely
-          BODY_ESCAPED=$(printf "%s" "$BODY" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
+          # take only first 5 lines (clean preview)
+          PREVIEW=$(echo "$BODY" | head -n 5 | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
 
           curl -H "Content-Type: application/json" \
-          -d "{\"content\": \"🚀 **${{ github.event.release.name }}**\n📦 Version: ${{ github.event.release.tag_name }}\n\n📝 Changes:\n$BODY_ESCAPED\n\n🔗 ${{ github.event.release.html_url }}\"}" \
+          -d "{\"content\": \"🚀 **${{ github.event.release.name }}**\n📦 Version: ${{ github.event.release.tag_name }}\n\n📝 Changes (Preview):\n$PREVIEW\n\n🔗 Full notes: ${{ github.event.release.html_url }}\"}" \
           "${{ secrets.DISCORD_WEBHOOK }}"
